@@ -6,13 +6,10 @@ import { useLocation } from 'react-router-dom';
 
 export const PeopleFilters = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [query, setQuery] = React.useState(searchParams.get('query') || '');
+  const [query, setQuery] = useState('');
 
   const [selectedCenturies, setSelectedCenturies] = useState<string[]>([]);
   const location = useLocation();
-
-  const centuries = ['16', '17', '18', '19', '20', '21'];
-
   const updateParams = (fn: (p: URLSearchParams) => void) => {
     const p = new URLSearchParams(searchParams);
 
@@ -20,25 +17,53 @@ export const PeopleFilters = () => {
     setSearchParams(p);
   };
 
+  function useDebounce<T>(value: T, delay = 300) {
+    const [debounced, setDebounced] = useState<T>(value);
+
+    useEffect(() => {
+      const id = setTimeout(() => setDebounced(value), delay);
+
+      return () => clearTimeout(id);
+    }, [value, delay]);
+
+    return debounced;
+  }
+
+  const debouncedQuery = useDebounce(query, 300);
+
+  useEffect(() => {
+    updateParams(p => {
+      if (debouncedQuery === '') {
+        p.delete('query');
+      } else {
+        p.set('query', debouncedQuery);
+      }
+    });
+  }, [debouncedQuery]);
+
+  const centuries = ['16', '17', '18', '19', '20', '21'];
+
   function handleQueryChange(event: React.ChangeEvent<HTMLInputElement>) {
     const value = event.target.value;
 
     setQuery(value);
-    updateParams(p => {
-      if (value === '') {
-        p.delete('query');
-      } else {
-        p.set('query', value);
-      }
-    });
   }
 
   function resetAllFilters() {
-    setQuery('');
+    updateParams(p => {
+      p.delete('query');
+      p.delete('centuries');
+      p.delete('userId');
+    });
 
-    searchParams.delete('query');
-    searchParams.delete('userId');
-    searchParams.delete('centuries');
+    setQuery('');
+    setSelectedCenturies([]);
+  }
+
+  function handleSexFilter() {
+    updateParams(p => {
+      p.delete('sex');
+    });
   }
 
   function toggleCentury(century: string) {
@@ -58,6 +83,14 @@ export const PeopleFilters = () => {
     });
   }
 
+  function resetCenturies() {
+    updateParams(p => {
+      p.delete('centuries');
+    });
+
+    setSelectedCenturies([]);
+  }
+
   useEffect(() => {
     setQuery(searchParams.get('query') || '');
     setSelectedCenturies(searchParams.getAll('centuries'));
@@ -71,6 +104,7 @@ export const PeopleFilters = () => {
         <Link
           to={{ pathname: '/people', search: location.search }}
           className={location.pathname === '/' ? 'is-active' : '`'}
+          onClick={handleSexFilter}
         >
           All
         </Link>
@@ -103,9 +137,8 @@ export const PeopleFilters = () => {
         <div className="level is-flex-grow-1 is-mobile" data-cy="CenturyFilter">
           <div className="level-left">
             {centuries.map(centuryItem => (
-              <Link
+              <button
                 data-cy="century"
-                to={`#/people?centuries=${centuryItem}`}
                 key={centuryItem}
                 onClick={() => toggleCentury(centuryItem)}
                 className={classNames('button', {
@@ -114,33 +147,32 @@ export const PeopleFilters = () => {
                 })}
               >
                 {centuryItem}
-              </Link>
+              </button>
             ))}
           </div>
 
           <div className="level-right ml-4">
-            <a
+            <button
               data-cy="centuryALL"
               className="button is-success is-outlined"
-              href="#/people"
+              onClick={() => resetCenturies()}
             >
               All
-            </a>
+            </button>
           </div>
         </div>
       </div>
 
       <div className="panel-block">
-        {selectedCenturies.length > 0 ||
-          (query !== '' && (
-            <Link
-              className="button is-link is-outlined is-fullwidth"
-              to="#/people"
-              onClick={resetAllFilters}
-            >
-              Reset all filters
-            </Link>
-          ))}
+        {(selectedCenturies.length > 0 || query !== '') && (
+          <Link
+            className="button is-link is-outlined is-fullwidth"
+            to="#/people"
+            onClick={resetAllFilters}
+          >
+            Reset all filters
+          </Link>
+        )}
       </div>
     </nav>
   );
