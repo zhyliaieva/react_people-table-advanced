@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import classNames from 'classnames';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 
 export const PeopleFilters = () => {
@@ -10,12 +10,15 @@ export const PeopleFilters = () => {
 
   const [selectedCenturies, setSelectedCenturies] = useState<string[]>([]);
   const location = useLocation();
-  const updateParams = (fn: (p: URLSearchParams) => void) => {
-    const p = new URLSearchParams(searchParams);
+  const updateParams = useCallback(
+    (fn: (p: URLSearchParams) => void) => {
+      const p = new URLSearchParams(searchParams);
 
-    fn(p);
-    setSearchParams(p);
-  };
+      fn(p);
+      setSearchParams(p);
+    },
+    [searchParams, setSearchParams],
+  );
 
   function useDebounce<T>(value: T, delay = 300) {
     const [debounced, setDebounced] = useState<T>(value);
@@ -30,16 +33,6 @@ export const PeopleFilters = () => {
   }
 
   const debouncedQuery = useDebounce(query, 300);
-
-  useEffect(() => {
-    updateParams(p => {
-      if (debouncedQuery === '') {
-        p.delete('query');
-      } else {
-        p.set('query', debouncedQuery);
-      }
-    });
-  }, [debouncedQuery]);
 
   const centuries = ['16', '17', '18', '19', '20', '21'];
 
@@ -95,6 +88,16 @@ export const PeopleFilters = () => {
     setQuery(searchParams.get('query') || '');
     setSelectedCenturies(searchParams.getAll('centuries'));
   }, [searchParams]);
+
+  useEffect(() => {
+    updateParams(p => {
+      if (debouncedQuery) {
+        p.set('query', debouncedQuery);
+      } else {
+        p.delete('query');
+      }
+    });
+  }, [debouncedQuery, updateParams]);
 
   return (
     <nav className="panel">
