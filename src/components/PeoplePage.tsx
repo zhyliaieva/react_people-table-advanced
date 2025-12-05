@@ -4,12 +4,51 @@ import { getPeople } from '../api';
 import { Loader } from '../components/Loader/Loader';
 import { useEffect, useState } from 'react';
 import { Person } from '../types/Person';
+import { useSearchParams } from 'react-router-dom';
 
 export const PeoplePage = () => {
   const [people, setPeople] = useState<Person[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [isErrorVisible, setIsErrorVisible] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  function applyFilters(peopleList: Person[]) {
+    let filteredPeople = [...peopleList];
+
+    const query = searchParams.get('query') || '';
+    const centuries = searchParams.getAll('centuries');
+    const sex = searchParams.get('sex');
+    const userId = searchParams.get('userId');
+
+    if (userId) {
+      filteredPeople = filteredPeople.filter(
+        person => person.userId.toString() === userId,
+      );
+    }
+
+    if (query) {
+      filteredPeople = filteredPeople.filter(person =>
+        person.name.toLowerCase().includes(query.toLowerCase()),
+      );
+    }
+
+    if (sex) {
+      filteredPeople = filteredPeople.filter(person => person.sex === sex);
+    }
+
+    if (centuries.length > 0) {
+      filteredPeople = filteredPeople.filter(person => {
+        const birthCentury = Math.ceil(person.born / 100).toString();
+
+        return centuries.includes(birthCentury);
+      });
+    }
+
+    return filteredPeople;
+  }
+
+  const visiblePeople = applyFilters(people);
 
   function loadPeople() {
     setLoading(true);
@@ -47,7 +86,7 @@ export const PeoplePage = () => {
 
           <div className="column">
             <div className="box table-container">
-              <PeopleTable people={people} loading={loading} />
+              <PeopleTable people={visiblePeople} loading={loading} />
             </div>
           </div>
         </div>
