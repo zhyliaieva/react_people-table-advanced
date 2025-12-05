@@ -19,12 +19,22 @@ export const PeoplePage = () => {
     const query = searchParams.get('query') || '';
     const centuries = searchParams.getAll('centuries');
     const sex = searchParams.get('sex');
-    const userId = searchParams.get('userId');
 
-    if (userId) {
-      filteredPeople = filteredPeople.filter(
-        person => person.userId.toString() === userId,
-      );
+    const sort = searchParams.get('sort');
+    const order = searchParams.get('order');
+
+    if (sort) {
+      filteredPeople.sort((a, b) => {
+        let compare = 0;
+
+        if (a[sort as keyof Person] < b[sort as keyof Person]) {
+          compare = -1;
+        } else if (a[sort as keyof Person] > b[sort as keyof Person]) {
+          compare = 1;
+        }
+
+        return order === 'desc' ? compare * -1 : compare;
+      });
     }
 
     if (query) {

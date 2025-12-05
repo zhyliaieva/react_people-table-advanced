@@ -26,6 +26,7 @@ export const PeopleTable: React.FC<PeopleTableProps> = ({
       const ord = params.get('order');
       const newParams = new URLSearchParams(params.toString());
 
+
       if (cur !== field) {
         newParams.set('sort', field);
         newParams.delete('order');
